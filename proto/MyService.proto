@@ -6,8 +6,8 @@ option go_package = "/my";
 
 // Demo service, supported echo and sum functions.
 service DemoService {
-  rpc Echo (EchoRequest) returns (EchoReply){}
-  rpc Sum (stream SumRequest) returns (SumResponse){}
+  rpc Echo (EchoRequest) returns (EchoReply);
+  rpc Sum (stream SumRequest) returns (SumResponse);
 }
 
 message EchoRequest {
