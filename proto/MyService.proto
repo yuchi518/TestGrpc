@@ -1,0 +1,29 @@
+//這邊使用 proto3 的格式 也就是 protobuf 第三版的意思，要注意，第二版跟第三版有一些語法上的差異喔
+syntax = "proto3";
+
+package my;
+option go_package = "/my";
+
+// Demo service, supported echo and sum functions.
+service DemoService {
+  rpc Echo (EchoRequest) returns (EchoReply){}
+  rpc Sum (stream SumRequest) returns (SumResponse){}
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoReply {
+  string message = 1;
+  int64 timestamp = 2;
+}
+
+message SumRequest {
+  int64 value = 1;
+}
+
+message SumResponse {
+  int64 sum = 1;
+  double average = 2;
+}
