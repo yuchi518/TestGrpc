@@ -1,12 +1,44 @@
-//這邊使用 proto3 的格式 也就是 protobuf 第三版的意思，要注意，第二版跟第三版有一些語法上的差異喔
 syntax = "proto3";
-
-package my;
+package my.v1;
 option go_package = "/my";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "A Bit of Everything";
+    version: "1.0";
+    contact: {
+      name: "gRPC-Gateway project";
+      url: "https://github.com/grpc-ecosystem/grpc-gateway";
+      email: "none@example.com";
+    };
+    license: {
+      name: "BSD 3-Clause License";
+      url: "https://github.com/grpc-ecosystem/grpc-gateway/blob/master/LICENSE.txt";
+    };
+    extensions: {
+      key: "x-something-something";
+      value {
+        string_value: "yadda";
+      }
+    }
+  };
+  schemes: HTTP;
+  schemes: HTTPS;
+  consumes: "application/json";
+  produces: "application/json";
+};
 
 // Demo service, supported echo and sum functions.
 service DemoService {
-  rpc Echo (EchoRequest) returns (EchoReply);
+  rpc Echo(EchoRequest) returns (EchoReply) {
+     option (google.api.http) = {
+       post: "/v1/echo"
+       body: "*"
+     };
+  }
   rpc Sum (stream SumRequest) returns (SumResponse);
 }
 

@@ -2,22 +2,33 @@ package main
 
 import (
 	pb "TestGrpc/my"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
 	"fmt"
-	"golang.org/x/net/context"
+	"github.com/golang/glog"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"path"
+
+	//"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
+	"strings"
 	"time"
 )
 
 type EchoServer struct {
-	pb.DemoServiceServer
+	pb.UnimplementedDemoServiceServer
 }
 
 func (e *EchoServer) Echo(ctx context.Context, req *pb.EchoRequest) (resp *pb.EchoReply, err error) {
@@ -65,6 +76,7 @@ func main() {
 	go clientEcho(2*time.Second, tlsDialOption)
 	go clientEcho(3*time.Second, tlsDialOption)
 	go clientSum(1*time.Second, tlsDialOption)
+	go reverseProxy(tlsDialOption)
 	serverProcedure(tlsServerOption)
 }
 
@@ -128,13 +140,17 @@ func serverProcedure(tlsServerOption grpc.ServerOption) {
 	// 註冊 grpc
 	es := &EchoServer{}
 
-	grpc := grpc.NewServer(tlsServerOption)
+	// Intercept request to check the token.
+	//tokenServerOption := grpc.UnaryInterceptor(validateToken)
+	// Enable TLS for all incoming connections.
+
+	grpc := grpc.NewServer( /*tokenServerOption,*/ tlsServerOption)
 	//pb.Re(grpc, es)
 	pb.RegisterDemoServiceServer(grpc, es)
 	reflection.Register(grpc)
 	log.Println("[Server] running")
 	if err := grpc.Serve(apiListener); err != nil {
-		log.Fatal(" [Server] grpc.Serve Error: ", err)
+		log.Fatal("[Server] grpc.Serve Error: ", err)
 		return
 	}
 }
@@ -174,4 +190,81 @@ func loadClientTLSCredentials() (credentials.TransportCredentials, error) {
 	}
 
 	return credentials.NewTLS(config), nil
+}
+
+func validateToken(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
+	}
+
+	if !valid(md["authorization"]) {
+		return nil, status.Errorf(codes.Unauthenticated, "invalid token")
+	}
+
+	return handler(ctx, req)
+}
+
+func valid(authorization []string) bool {
+	if len(authorization) < 1 {
+		return false
+	}
+
+	token := strings.TrimPrefix(authorization[0], "Bearer ")
+	// If you have more than one client then you will have to update this line.
+	return token == "client-x-id"
+}
+
+var (
+	// command-line options:
+	// gRPC server endpoint
+	grpcServerEndpoint = flag.String("grpc-server-endpoint", "localhost:9999", "gRPC server endpoint")
+)
+
+func openAPIServer(dir string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, ".swagger.json") {
+			glog.Errorf("Not Found: %s", r.URL.Path)
+			http.NotFound(w, r)
+			return
+		}
+
+		glog.Infof("Serving %s", r.URL.Path)
+		p := strings.TrimPrefix(r.URL.Path, "/openapiv2/")
+		p = path.Join(dir, p)
+		http.ServeFile(w, r, p)
+	}
+}
+
+func run(tlsDialogOption grpc.DialOption) error {
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Register gRPC server endpoint
+	// Note: Make sure the gRPC server is running properly and accessible
+	mux := http.NewServeMux()
+	mux.HandleFunc("/openapiv2/", openAPIServer("my"))
+
+	gw := runtime.NewServeMux()
+	opts := []grpc.DialOption{tlsDialogOption /*grpc.WithTransportCredentials(insecure.NewCredentials())*/}
+	err := pb.RegisterDemoServiceHandlerFromEndpoint(ctx, gw, ":9999" /*grpcServerEndpoint*/, opts)
+	if err != nil {
+		return err
+	}
+
+	mux.Handle("/", gw)
+
+	// Start HTTP server (and proxy calls to gRPC server endpoint)
+	return http.ListenAndServe(":8081", mux)
+}
+
+func reverseProxy(tlsDialogOption grpc.DialOption) {
+	flag.Parse()
+	//defer glog.Flush()
+
+	if err := run(tlsDialogOption); err != nil {
+		log.Fatalf("[RESTFul] %v", err)
+		//glog.Fatal(err)
+	}
 }

@@ -32,7 +32,7 @@ func NewDemoServiceClient(cc grpc.ClientConnInterface) DemoServiceClient {
 
 func (c *demoServiceClient) Echo(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoReply, error) {
 	out := new(EchoReply)
-	err := c.cc.Invoke(ctx, "/my.DemoService/Echo", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/my.v1.DemoService/Echo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +40,7 @@ func (c *demoServiceClient) Echo(ctx context.Context, in *EchoRequest, opts ...g
 }
 
 func (c *demoServiceClient) Sum(ctx context.Context, opts ...grpc.CallOption) (DemoService_SumClient, error) {
-	stream, err := c.cc.NewStream(ctx, &DemoService_ServiceDesc.Streams[0], "/my.DemoService/Sum", opts...)
+	stream, err := c.cc.NewStream(ctx, &DemoService_ServiceDesc.Streams[0], "/my.v1.DemoService/Sum", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func _DemoService_Echo_Handler(srv interface{}, ctx context.Context, dec func(in
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/my.DemoService/Echo",
+		FullMethod: "/my.v1.DemoService/Echo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DemoServiceServer).Echo(ctx, req.(*EchoRequest))
@@ -153,7 +153,7 @@ func (x *demoServiceSumServer) Recv() (*SumRequest, error) {
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var DemoService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "my.DemoService",
+	ServiceName: "my.v1.DemoService",
 	HandlerType: (*DemoServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
