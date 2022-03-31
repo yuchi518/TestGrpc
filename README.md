@@ -1,5 +1,12 @@
 ## GRPC tryout
 
+### Document
+* [Protobuf](https://developers.google.com/protocol-buffers)
+* [GRPC](https://www.grpc.io)
+* [GRPC Gateway](https://github.com/grpc-ecosystem/grpc-gateway)
+* [GRPC Gateway](https://grpc-ecosystem.github.io/grpc-gateway/)
+* [a_bit_of_everything.proto](https://github.com/grpc-ecosystem/grpc-gateway/blob/master/examples/internal/proto/examplepb/a_bit_of_everything.proto)
+
 ### Tech
 * Go language
 * Protobuf
