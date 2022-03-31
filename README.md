@@ -5,8 +5,9 @@
 * Protobuf
 * GRPC
 * TLS
-* HTTP Gateway [ref1](https://github.com/grpc-ecosystem/grpc-gateway), [ref2](https://grpc-ecosystem.github.io/grpc-gateway/)
-* OpenAPI
+* HTTP gateway [ref1](https://github.com/grpc-ecosystem/grpc-gateway), [ref2](https://grpc-ecosystem.github.io/grpc-gateway/)
+* OpenAPI, swagger
+* OAuth, token authentication
 
 #### Install
 
@@ -33,7 +34,7 @@ protoc --proto_path=. --go_out=. --go-grpc_out=. \
 
 ##### GRPC http gateway (REST API)
 ```shell
-$ curl -X POST -k http://localhost:8081/v1/echo -d '{"message": " hello"}'
+$ curl -X POST -H "Authorization: Bearer client-x-id" -k http://localhost:8081/v1/echo -d '{"message": " hello"}'
 {"message":" hello","timestamp":"1648689560"}
 ```
 
